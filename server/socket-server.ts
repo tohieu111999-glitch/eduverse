@@ -13,11 +13,25 @@ type ChatSendPayload = {
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.SOCKET_PORT ?? 3001);
-const ALLOWED_ORIGIN = process.env.NEXTAUTH_URL ?? "http://localhost:3000";
+const ALLOWED_ORIGIN = process.env.NEXTAUTH_URL ?? process.env.AUTH_URL;
+
+// Always allow localhost and private-LAN origins (any port) for local/LAN
+// testing, plus the configured production origin if one is set — a single
+// fixed origin would reject every device that isn't the exact host the app
+// was configured for (e.g. anyone on the LAN testing via the host's IP).
+const LOCAL_ORIGIN_PATTERN = /^https?:\/\/(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+)(:\d+)?$/;
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
-  cors: { origin: ALLOWED_ORIGIN, credentials: true },
+  cors: {
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      if (ALLOWED_ORIGIN && origin === ALLOWED_ORIGIN) return callback(null, true);
+      if (LOCAL_ORIGIN_PATTERN.test(origin)) return callback(null, true);
+      callback(new Error("Not allowed by CORS"));
+    },
+    credentials: true,
+  },
 });
 
 io.use((socket, next) => {

@@ -126,7 +126,20 @@
       "Bash(curl -s -o /dev/null -w \"Network access check: %{http_code}\\\\n\" http://192.168.31.165:3000 --max-time 5)",
       "Bash(DATABASE_URL=\"postgresql://neondb_owner:npg_NQ24SvIaGxFn@ep-gentle-violet-aoam5tcl.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require\" npx prisma db push)",
       "Bash(curl -s -o /dev/null -w \"Local app still responding: %{http_code}\\\\n\" http://localhost:3000 --max-time 5)",
-      "Bash(DATABASE_URL=postgresql://neondb_owner:npg_NQ24SvIaGxFn@ep-gentle-violet-aoam5tcl.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require node -e ' *)"
+      "Bash(DATABASE_URL=postgresql://neondb_owner:npg_NQ24SvIaGxFn@ep-gentle-violet-aoam5tcl.c-2.ap-southeast-1.aws.neon.tech/neondb?sslmode=require node -e ' *)",
+      "PowerShell(Get-CimInstance Win32_Process -Filter \"Name='node.exe'\" | Select-Object ProcessId, @{N='CommandLine';E={$_.CommandLine}} | Format-List)",
+      "PowerShell(Stop-Process -Id 13508,10084 -Force -ErrorAction SilentlyContinue)",
+      "Bash(taskkill //F //PID 15600)",
+      "Bash(taskkill //F //PID 13480)",
+      "Bash(taskkill //F //PID 7064)",
+      "Bash(cat next.config.ts)",
+      "Bash(cat next.config.js)",
+      "Bash(cat next.config.mjs)",
+      "Bash(taskkill //F //PID 13204)",
+      "Bash(rm -rf .next)",
+      "Bash(npm start *)",
+      "Bash(curl -s -o /dev/null -w \"localhost: %{http_code} in %{time_total}s\\\\n\" http://localhost:3000 --max-time 5)",
+      "Bash(curl -s -o /dev/null -w \"LAN IP: %{http_code} in %{time_total}s\\\\n\" http://192.168.31.165:3000 --max-time 5)"
     ],
     "additionalDirectories": [
       "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\api\\auth",

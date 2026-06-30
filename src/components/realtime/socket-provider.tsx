@@ -18,7 +18,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const { token } = await res.json();
       if (cancelled) return;
 
-      activeSocket = io(process.env.NEXT_PUBLIC_SOCKET_URL, { auth: { token } });
+      // Always computed from the current page's host, not a fixed env var —
+      // a hardcoded "localhost" URL only ever resolves to the visiting
+      // device itself, breaking realtime delivery for anyone viewing the
+      // site from a different device (LAN IP, real domain, etc.) than
+      // whichever machine the app happened to be built on.
+      const socketPort = process.env.NEXT_PUBLIC_SOCKET_PORT ?? "3001";
+      const socketUrl = `${window.location.protocol}//${window.location.hostname}:${socketPort}`;
+
+      activeSocket = io(socketUrl, { auth: { token } });
       setSocket(activeSocket);
     }
 

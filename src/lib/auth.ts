@@ -31,6 +31,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
   secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
+  // Without this, Auth.js redirects every sign-in back to whatever fixed
+  // AUTH_URL/NEXTAUTH_URL is configured (here, "http://localhost:3000"),
+  // regardless of which host the request actually came in on — breaking
+  // sign-in for anyone visiting via the LAN IP or a real domain. trustHost
+  // makes it use the incoming request's actual Host header instead.
+  trustHost: true,
   pages: {
     signIn: "/login",
   },
@@ -43,10 +49,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         totp: { label: "Mã xác thực 2FA", type: "text" },
       },
       authorize: async (credentials) => {
-        const identifier = credentials?.identifier as string | undefined;
+        const rawIdentifier = credentials?.identifier as string | undefined;
         const password = credentials?.password as string | undefined;
         const totp = credentials?.totp as string | undefined;
-        if (!identifier || !password) return null;
+        if (!rawIdentifier || !password) return null;
+
+        // Registration always lowercases/trims email and username before
+        // storing — normalize the same way here, otherwise typing it back
+        // with different casing (autocapitalize, copy-paste, etc.) finds no
+        // user and falls through to the generic "wrong password" message.
+        const identifier = rawIdentifier.trim().toLowerCase();
 
         const user = await prisma.user.findFirst({
           where: {
