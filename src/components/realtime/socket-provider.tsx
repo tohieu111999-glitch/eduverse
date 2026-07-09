@@ -18,15 +18,14 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       const { token } = await res.json();
       if (cancelled) return;
 
-      // Always computed from the current page's host, not a fixed env var —
-      // a hardcoded "localhost" URL only ever resolves to the visiting
-      // device itself, breaking realtime delivery for anyone viewing the
-      // site from a different device (LAN IP, real domain, etc.) than
-      // whichever machine the app happened to be built on.
-      const socketPort = process.env.NEXT_PUBLIC_SOCKET_PORT ?? "3001";
-      const socketUrl = `${window.location.protocol}//${window.location.hostname}:${socketPort}`;
+      // NEXT_PUBLIC_SOCKET_URL: explicit full URL for production (e.g. Railway).
+      // Falls back to hostname:port for LAN/local dev where both run on the
+      // same machine — a fixed "localhost" would break cross-device access.
+      const socketUrl =
+        process.env.NEXT_PUBLIC_SOCKET_URL ??
+        `${window.location.protocol}//${window.location.hostname}:${process.env.NEXT_PUBLIC_SOCKET_PORT ?? "3001"}`;
 
-      activeSocket = io(socketUrl, { auth: { token } });
+      activeSocket = io(socketUrl, { auth: { token }, transports: ["websocket", "polling"] });
       setSocket(activeSocket);
     }
 

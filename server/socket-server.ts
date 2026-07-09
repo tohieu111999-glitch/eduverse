@@ -12,8 +12,10 @@ type ChatSendPayload = {
 };
 
 const prisma = new PrismaClient();
-const PORT = Number(process.env.SOCKET_PORT ?? 3001);
-const ALLOWED_ORIGIN = process.env.NEXTAUTH_URL ?? process.env.AUTH_URL;
+// Railway sets PORT automatically; SOCKET_PORT overrides for local dev.
+const PORT = Number(process.env.SOCKET_PORT ?? process.env.PORT ?? 3001);
+// Explicit allowed origin (set to the Vercel app URL in production).
+const ALLOWED_ORIGIN = process.env.ALLOWED_ORIGIN;
 
 // Always allow localhost and private-LAN origins (any port) for local/LAN
 // testing, plus the configured production origin if one is set — a single
