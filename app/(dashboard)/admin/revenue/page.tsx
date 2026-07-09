@@ -21,23 +21,27 @@ export default async function RevenuePage() {
   const session = await requireAdmin();
   if (!session) redirect("/dashboard");
 
-  const [today, week, month, allTime, commission, vipRevenue, withdrawn, recentTopups] = await Promise.all([
-    prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("day") } } }),
-    prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("week") } } }),
-    prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("month") } } }),
-    prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }),
-    prisma.order.aggregate({ _sum: { commission: true }, where: { status: "COMPLETED" } }),
-    prisma.vipPurchase.aggregate({ _sum: { coinsSpent: true } }),
-    prisma.withdrawal.aggregate({ _sum: { amountVnd: true }, where: { status: "COMPLETED" } }),
-    prisma.coinTopup.findMany({
-      where: { status: "COMPLETED" },
-      orderBy: { createdAt: "desc" },
-      take: 20,
-      include: { user: { select: { username: true, displayName: true } } },
-    }),
-  ]);
+  const [today, week, month, allTime, commission, vipRevenue, withdrawn, recentTopups, courseEnrollments] =
+    await Promise.all([
+      prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("day") } } }),
+      prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("week") } } }),
+      prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED", createdAt: { gte: startOf("month") } } }),
+      prisma.coinTopup.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }),
+      prisma.order.aggregate({ _sum: { commission: true }, where: { status: "COMPLETED" } }),
+      prisma.vipPurchase.aggregate({ _sum: { coinsSpent: true } }),
+      prisma.withdrawal.aggregate({ _sum: { amountVnd: true }, where: { status: "COMPLETED" } }),
+      prisma.coinTopup.findMany({
+        where: { status: "COMPLETED" },
+        orderBy: { createdAt: "desc" },
+        take: 20,
+        include: { user: { select: { username: true, displayName: true } } },
+      }),
+      prisma.courseEnrollment.findMany({ include: { course: { select: { price: true } } } }),
+    ]);
 
   const vnd = (n: number | null) => `${(n ?? 0).toLocaleString("vi-VN")}đ`;
+  // Course commission: 20% of each enrollment's course price
+  const courseCommission = courseEnrollments.reduce((s, e) => s + Math.floor(e.course.price * 0.2), 0);
 
   return (
     <div className="mx-auto max-w-3xl space-y-4">
@@ -81,6 +85,14 @@ export default async function RevenuePage() {
           <div>
             <p className="text-xs text-muted">Doanh thu VIP</p>
             <p className="text-lg font-semibold">{vipRevenue._sum.coinsSpent ?? 0} coin</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted">Hoa hồng khoá học (20%)</p>
+            <p className="text-lg font-semibold">{courseCommission} coin</p>
+          </div>
+          <div>
+            <p className="text-xs text-muted">Tổng đăng ký khoá học</p>
+            <p className="text-lg font-semibold">{courseEnrollments.length} lượt</p>
           </div>
         </div>
         <div className="mt-4 border-t border-foreground/10 pt-4">

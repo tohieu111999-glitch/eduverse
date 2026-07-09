@@ -13,6 +13,8 @@ const ACTION_LABEL: Record<string, string> = {
   WITHDRAWAL_REJECTED: "Từ chối yêu cầu rút coin",
   DOCUMENT_APPROVED: "Duyệt tài liệu",
   DOCUMENT_REJECTED: "Từ chối tài liệu",
+  COURSE_APPROVED: "Duyệt khoá học",
+  COURSE_REJECTED: "Từ chối khoá học",
   USER_BANNED: "Khoá tài khoản",
   USER_UNBANNED: "Mở khoá tài khoản",
   ROLE_CHANGED: "Đổi vai trò",

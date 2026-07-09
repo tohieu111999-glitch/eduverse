@@ -58,18 +58,24 @@ model User {
   serverMembers   ServerMember[]
   channelMessages ChannelMessage[]
 
-  flashcardDecks     FlashcardDeck[]
-  cardReviews        CardReview[]
-  quizzes            Quiz[]
-  quizAttempts       QuizAttempt[]
-  schoolAdminOf      School?           @relation("SchoolAdmin")
-  schoolTeacherOf    SchoolTeacher[]   @relation("SchoolTeacherUser")
-  classroomsTeaching Classroom[]       @relation("ClassroomTeacher")
-  classroomsEnrolled ClassroomMember[] @relation("ClassroomStudent")
-  vipPurchases       VipPurchase[]
-  auditLogs          AuditLog[]
-  withdrawals        Withdrawal[]
-  wordLookups        WordLookup[]
+  flashcardDecks        FlashcardDeck[]
+  cardReviews           CardReview[]
+  quizzes               Quiz[]
+  quizAttempts          QuizAttempt[]
+  schoolAdminOf         School?                @relation("SchoolAdmin")
+  schoolTeacherOf       SchoolTeacher[]        @relation("SchoolTeacherUser")
+  classroomsTeaching    Classroom[]            @relation("ClassroomTeacher")
+  classroomsEnrolled    ClassroomMember[]      @relation("ClassroomStudent")
+  vipPurchases          VipPurchase[]
+  auditLogs             AuditLog[]
+  withdrawals           Withdrawal[]
+  wordLookups           WordLookup[]
+  coursesTeaching       Course[]               @relation("CourseInstructor")
+  courseEnrollments     CourseEnrollment[]
+  courseRatings         CourseRating[]
+  lessonProgress        LessonProgress[]
+  assignmentSubmissions AssignmentSubmission[]
+  certificates          Certificate[]
 }
 
 model Account {
@@ -459,18 +465,19 @@ model CardReview {
 }
 
 model Quiz {
-  id          String         @id @default(cuid())
-  title       String
-  description String?
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
   // BCP-47 tag used for both TTS playback (listening) and speech recognition
   // (speaking) — e.g. "vi-VN", "en-US".
-  language    String         @default("vi-VN")
-  visibility  QuizVisibility @default(PUBLIC)
-  ownerId     String
-  owner       User           @relation(fields: [ownerId], references: [id])
-  questions   QuizQuestion[]
-  attempts    QuizAttempt[]
-  createdAt   DateTime       @default(now())
+  language     String         @default("vi-VN")
+  visibility   QuizVisibility @default(PUBLIC)
+  ownerId      String
+  owner        User           @relation(fields: [ownerId], references: [id])
+  questions    QuizQuestion[]
+  attempts     QuizAttempt[]
+  createdAt    DateTime       @default(now())
+  courseLesson CourseLesson?
 }
 
 model QuizQuestion {
@@ -567,4 +574,138 @@ model WordLookup {
   userId    String
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
+}
+
+// ===== Online Courses =====
+// Priced/sold the same way as marketplace Document (coins, splitCommission)
+// — see src/lib/marketplace.ts. Quiz-type lessons reuse the existing Quiz
+// model entirely rather than duplicating question/answer infrastructure.
+model Course {
+  id           String             @id @default(cuid())
+  title        String
+  description  String
+  price        Int
+  coverImage   String?
+  category     String
+  level        String?
+  instructorId String
+  instructor   User               @relation("CourseInstructor", fields: [instructorId], references: [id])
+  status       CourseStatus       @default(PENDING)
+  sections     CourseSection[]
+  enrollments  CourseEnrollment[]
+  ratings      CourseRating[]
+  certificates Certificate[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+}
+
+enum CourseStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model CourseSection {
+  id       String         @id @default(cuid())
+  courseId String
+  course   Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title    String
+  order    Int            @default(0)
+  lessons  CourseLesson[]
+}
+
+enum LessonType {
+  VIDEO
+  PDF
+  ARTICLE
+  ASSIGNMENT
+  QUIZ
+}
+
+model CourseLesson {
+  id         String           @id @default(cuid())
+  sectionId  String
+  section    CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  title      String
+  type       LessonType
+  videoUrl   String?
+  fileUrl    String?
+  content    String?
+  order      Int              @default(0)
+  quizId     String?          @unique
+  quiz       Quiz?            @relation(fields: [quizId], references: [id])
+  progress   LessonProgress[]
+  assignment Assignment?
+}
+
+model LessonProgress {
+  id          String       @id @default(cuid())
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  lessonId    String
+  lesson      CourseLesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  completed   Boolean      @default(false)
+  completedAt DateTime?
+
+  @@unique([userId, lessonId])
+}
+
+model Assignment {
+  id          String                 @id @default(cuid())
+  lessonId    String                 @unique
+  lesson      CourseLesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  prompt      String
+  submissions AssignmentSubmission[]
+}
+
+model AssignmentSubmission {
+  id           String     @id @default(cuid())
+  assignmentId String
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  content      String
+  score        Int?
+  feedback     String?
+  gradedBy     String? // "AI" or an instructor userId, for display purposes
+  submittedAt  DateTime   @default(now())
+
+  @@unique([assignmentId, userId])
+}
+
+model CourseEnrollment {
+  id          String    @id @default(cuid())
+  courseId    String
+  course      Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  enrolledAt  DateTime  @default(now())
+  completedAt DateTime?
+
+  @@unique([courseId, userId])
+}
+
+model CourseRating {
+  id        String   @id @default(cuid())
+  courseId  String
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  stars     Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([courseId, userId])
+}
+
+// ===== Certificates (Phase 2 depends on this existing as a target) =====
+model Certificate {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  courseId   String?
+  course     Course?  @relation(fields: [courseId], references: [id])
+  title      String
+  verifyCode String   @unique
+  issuedAt   DateTime @default(now())
 }

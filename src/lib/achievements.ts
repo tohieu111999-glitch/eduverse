@@ -50,6 +50,24 @@ export const ACHIEVEMENTS = {
     icon: "Trophy",
     expReward: 20,
   },
+  FIRST_COURSE_ENROLLED: {
+    name: "Học Viên Mới",
+    description: "Đăng ký khoá học đầu tiên",
+    icon: "GraduationCap",
+    expReward: 20,
+  },
+  FIRST_COURSE_COMPLETED: {
+    name: "Tốt Nghiệp",
+    description: "Hoàn thành khoá học đầu tiên",
+    icon: "Award",
+    expReward: 50,
+  },
+  FIRST_COURSE_PUBLISHED: {
+    name: "Giảng Viên Mới",
+    description: "Khoá học đầu tiên được duyệt",
+    icon: "Presentation",
+    expReward: 50,
+  },
   LEVEL_10: {
     name: "Học Viên",
     description: "Đạt cấp độ 10",

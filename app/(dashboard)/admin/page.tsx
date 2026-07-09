@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Banknote, ClipboardList, Coins, FileText, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { ArrowLeft, Banknote, ClipboardList, Coins, FileText, GraduationCap, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { requireAdmin } from "@/src/lib/admin";
 import { prisma } from "@/src/lib/prisma";
 import { GlassCard } from "@/src/components/ui/glass-card";
@@ -9,8 +9,9 @@ export default async function AdminPage() {
   const session = await requireAdmin();
   if (!session) redirect("/dashboard");
 
-  const [pendingDocuments, pendingTopups, pendingWithdrawals, totalUsers, revenueToday] = await Promise.all([
+  const [pendingDocuments, pendingCourses, pendingTopups, pendingWithdrawals, totalUsers, revenueToday] = await Promise.all([
     prisma.document.count({ where: { status: "PENDING" } }),
+    prisma.course.count({ where: { status: "PENDING" } }),
     prisma.coinTopup.count({ where: { status: "PENDING" } }),
     prisma.withdrawal.count({ where: { status: "PENDING" } }),
     prisma.user.count(),
@@ -46,6 +47,13 @@ export default async function AdminPage() {
             <FileText className="h-6 w-6 text-primary" />
             <h2 className="mt-3 font-semibold">Kiểm duyệt tài liệu</h2>
             <p className="text-sm text-muted">{pendingDocuments} tài liệu đang chờ duyệt</p>
+          </GlassCard>
+        </Link>
+        <Link href="/admin/courses">
+          <GlassCard className="p-5 transition hover:-translate-y-0.5">
+            <GraduationCap className="h-6 w-6 text-purple-400" />
+            <h2 className="mt-3 font-semibold">Kiểm duyệt khoá học</h2>
+            <p className="text-sm text-muted">{pendingCourses} khoá học đang chờ duyệt</p>
           </GlassCard>
         </Link>
         <Link href="/admin/topups">

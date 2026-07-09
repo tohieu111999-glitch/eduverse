@@ -139,7 +139,11 @@
       "Bash(rm -rf .next)",
       "Bash(npm start *)",
       "Bash(curl -s -o /dev/null -w \"localhost: %{http_code} in %{time_total}s\\\\n\" http://localhost:3000 --max-time 5)",
-      "Bash(curl -s -o /dev/null -w \"LAN IP: %{http_code} in %{time_total}s\\\\n\" http://192.168.31.165:3000 --max-time 5)"
+      "Bash(curl -s -o /dev/null -w \"LAN IP: %{http_code} in %{time_total}s\\\\n\" http://192.168.31.165:3000 --max-time 5)",
+      "Bash(taskkill //F //PID 3228)",
+      "Bash(taskkill //F //PID 3136 //PID 2580 //PID 13196)",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\EduVerse\\\\app\\\\api\\\\courses\\\\[courseId]\\\\content\\\\[lessonId]\")",
+      "Bash(mkdir -p \"c:\\\\Users\\\\Administrator\\\\Desktop\\\\EduVerse\\\\app\\\\\\(dashboard\\)\\\\courses\\\\[courseId]\\\\learn\\\\[lessonId]\")"
     ],
     "additionalDirectories": [
       "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\api\\auth",
@@ -149,7 +153,9 @@
       "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\groups\\[serverId]",
       "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\learn\\[deckId]",
       "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\learn\\quiz\\[quizId]",
-      "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\classroom"
+      "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\classroom",
+      "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\api\\courses\\[courseId]\\content",
+      "c:\\Users\\Administrator\\Desktop\\EduVerse\\app\\(dashboard)\\courses\\[courseId]\\learn"
     ]
   }
 }

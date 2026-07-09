@@ -12,6 +12,7 @@ export default async function TakeQuizPage({ params }: { params: Promise<{ quizI
   const quiz = await prisma.quiz.findUnique({
     where: { id: quizId },
     select: {
+      id: true,
       title: true,
       language: true,
       ownerId: true,

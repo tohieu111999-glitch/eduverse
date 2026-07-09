@@ -12,6 +12,9 @@ const PUBLIC_COVERS_DIR = path.join(process.cwd(), "public", "uploads", "covers"
 // this path for anything that needs purchase-gating.
 const PUBLIC_CHAT_DIR = path.join(process.cwd(), "public", "uploads", "chat");
 const PUBLIC_AVATARS_DIR = path.join(process.cwd(), "public", "uploads", "avatars");
+// Course lesson content (video/PDF) — private like documents, served only
+// through the enrollment-checked /api/courses/[courseId]/content route.
+const PRIVATE_COURSE_DIR = path.join(process.cwd(), "uploads", "courses");
 
 export function extOf(filename: string) {
   return path.extname(filename).toLowerCase();
@@ -53,4 +56,16 @@ export async function saveAvatarFile(file: File, ext: string) {
   const buffer = Buffer.from(await file.arrayBuffer());
   await writeFile(path.join(PUBLIC_AVATARS_DIR, filename), buffer);
   return `/uploads/avatars/${filename}`;
+}
+
+export async function saveCourseContentFile(file: File, ext: string) {
+  await mkdir(PRIVATE_COURSE_DIR, { recursive: true });
+  const storageKey = `${randomUUID()}${ext}`;
+  const buffer = Buffer.from(await file.arrayBuffer());
+  await writeFile(path.join(PRIVATE_COURSE_DIR, storageKey), buffer);
+  return storageKey;
+}
+
+export function resolveCourseContentPath(storageKey: string) {
+  return path.join(PRIVATE_COURSE_DIR, storageKey);
 }
