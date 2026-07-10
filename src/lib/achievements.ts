@@ -68,6 +68,24 @@ export const ACHIEVEMENTS = {
     icon: "Presentation",
     expReward: 50,
   },
+  STREAK_7: {
+    name: "Chuỗi 7 Ngày",
+    description: "Học liên tục 7 ngày",
+    icon: "Flame",
+    expReward: 50,
+  },
+  STREAK_30: {
+    name: "Chuỗi 30 Ngày",
+    description: "Học liên tục 30 ngày",
+    icon: "Flame",
+    expReward: 100,
+  },
+  STREAK_100: {
+    name: "Chuỗi 100 Ngày",
+    description: "Học liên tục 100 ngày",
+    icon: "Crown",
+    expReward: 200,
+  },
   LEVEL_10: {
     name: "Học Viên",
     description: "Đạt cấp độ 10",

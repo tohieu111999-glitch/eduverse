@@ -3,6 +3,7 @@ import Link from "next/link";
 import { GraduationCap, PlayCircle, Settings, Star } from "lucide-react";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
+import { formatVnd } from "@/src/lib/payment";
 import { GlassCard } from "@/src/components/ui/glass-card";
 import { buttonVariants } from "@/src/components/ui/button";
 import { LESSON_TYPE_LABELS } from "@/src/lib/courses";
@@ -17,7 +18,17 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const course = await prisma.course.findUnique({
     where: { id: courseId },
     include: {
-      instructor: { select: { id: true, displayName: true, username: true } },
+      instructor: {
+        select: {
+          id: true,
+          displayName: true,
+          username: true,
+          bankName: true,
+          bankBin: true,
+          bankAccount: true,
+          bankAccountName: true,
+        },
+      },
       sections: { orderBy: { order: "asc" }, include: { lessons: { orderBy: { order: "asc" } } } },
       ratings: { include: { user: { select: { displayName: true, username: true } } }, orderBy: { createdAt: "desc" } },
       _count: { select: { enrollments: true } },
@@ -38,6 +49,16 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
   const avgRating = course.ratings.length ? course.ratings.reduce((s, r) => s + r.stars, 0) / course.ratings.length : null;
   const lessonCount = course.sections.reduce((sum, s) => sum + s.lessons.length, 0);
 
+  const sellerBank =
+    course.instructor.bankName && course.instructor.bankBin && course.instructor.bankAccount && course.instructor.bankAccountName
+      ? {
+          bankName: course.instructor.bankName,
+          bankBin: course.instructor.bankBin,
+          bankAccount: course.instructor.bankAccount,
+          bankAccountName: course.instructor.bankAccountName,
+        }
+      : null;
+
   return (
     <div className="mx-auto max-w-2xl space-y-4">
       <GlassCard className="overflow-hidden p-0">
@@ -56,6 +77,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
             </span>
           )}
           <span className="text-xs text-accent">
+            {course.subject ? `${course.subject} · ` : ""}
             {course.category} · {course.level}
           </span>
           <h1 className="mt-1 text-2xl font-semibold">{course.title}</h1>
@@ -74,7 +96,9 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               )}
             </span>
             <span>{course._count.enrollments} học viên</span>
-            <span className="text-lg font-bold text-primary">{course.price} coins</span>
+            <span className="text-lg font-bold text-primary">
+              {course.price === 0 ? "Miễn phí" : formatVnd(course.price)}
+            </span>
           </div>
 
           <div className="mt-6 space-y-2">
@@ -94,7 +118,7 @@ export default async function CourseDetailPage({ params }: { params: Promise<{ c
               </Link>
             )}
             {!isInstructor && !isEnrolled && course.status === "APPROVED" && (
-              <BuyCourseButton courseId={course.id} price={course.price} />
+              <BuyCourseButton courseId={course.id} price={course.price} sellerBank={sellerBank} />
             )}
           </div>
         </div>

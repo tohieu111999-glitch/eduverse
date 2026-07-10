@@ -2,14 +2,14 @@
 
 import { useActionState, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MessageSquare } from "lucide-react";
+import { Crown, MessageSquare } from "lucide-react";
 import { addCommentAction, type AddCommentState } from "@/src/lib/post-interactions";
 import { Button } from "@/src/components/ui/button";
 
 type CommentItem = {
   id: string;
   content: string;
-  author: { displayName: string | null; username: string | null };
+  author: { displayName: string | null; username: string | null; vipLevel: string; vipExpiresAt: Date | null };
 };
 
 const initialState: AddCommentState = {};
@@ -40,12 +40,19 @@ export function CommentSection({ postId, comments, count }: { postId: string; co
 
       {open && (
         <div className="mt-3 space-y-2 border-t border-foreground/10 pt-3">
-          {comments.map((c) => (
-            <div key={c.id} className="rounded-lg bg-foreground/5 px-3 py-2 text-sm">
-              <span className="font-medium">{c.author.displayName ?? c.author.username ?? "Người dùng"}:</span>{" "}
-              <span>{c.content}</span>
-            </div>
-          ))}
+          {comments.map((c) => {
+            const isVip = c.author.vipLevel !== "FREE" && c.author.vipExpiresAt != null && c.author.vipExpiresAt > new Date();
+            return (
+              <div key={c.id} className="rounded-lg bg-foreground/5 px-3 py-2 text-sm">
+                <span className="inline-flex items-center gap-1 font-medium">
+                  {c.author.displayName ?? c.author.username ?? "Người dùng"}
+                  {isVip && <Crown className="h-3 w-3 text-amber-400" />}
+                </span>
+                {": "}
+                <span>{c.content}</span>
+              </div>
+            );
+          })}
 
           <form ref={formRef} action={formAction} className="flex gap-2">
             <input

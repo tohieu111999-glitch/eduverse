@@ -1,11 +1,11 @@
 // Simplified SM-2 spaced-repetition scheduler (the algorithm behind Anki).
 export type Quality = 0 | 3 | 4 | 5; // Quên · Khó · Tốt · Dễ
 
-export const QUALITY_LABELS: { value: Quality; label: string }[] = [
-  { value: 0, label: "Quên" },
-  { value: 3, label: "Khó" },
-  { value: 4, label: "Tốt" },
-  { value: 5, label: "Dễ" },
+export const QUALITY_LABELS: { value: Quality; label: string; color: string }[] = [
+  { value: 0, label: "Quên", color: "text-red-400 border-red-400/30 bg-red-500/10 hover:bg-red-500/20" },
+  { value: 3, label: "Khó", color: "text-orange-400 border-orange-400/30 bg-orange-500/10 hover:bg-orange-500/20" },
+  { value: 4, label: "Bình thường", color: "text-blue-400 border-blue-400/30 bg-blue-500/10 hover:bg-blue-500/20" },
+  { value: 5, label: "Dễ", color: "text-green-400 border-green-400/30 bg-green-500/10 hover:bg-green-500/20" },
 ];
 
 export function scheduleNextReview(

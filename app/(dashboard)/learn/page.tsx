@@ -1,73 +1,110 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BookOpenCheck, Plus, Trophy } from "lucide-react";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
-import { GlassCard } from "@/src/components/ui/glass-card";
-import { buttonVariants } from "@/src/components/ui/button";
+import { LearnPageClient } from "./learn-page-client";
+
+export type DeckCard = {
+  id: string;
+  name: string;
+  description: string | null;
+  language: string;
+  isSystem: boolean;
+  isVip: boolean;
+  totalCards: number;
+  dueCount: number;
+  newCount: number;
+};
+
+export type SRStats = {
+  l1: number; l2: number; l3: number; l4: number; l5: number;
+  dueTotal: number;
+};
 
 export default async function LearnPage() {
   const session = await auth();
   if (!session?.user) redirect("/login");
 
-  const decks = await prisma.flashcardDeck.findMany({
-    orderBy: { createdAt: "desc" },
-    include: {
-      cards: { include: { reviews: { where: { userId: session.user.id } } } },
-      _count: { select: { cards: true } },
-    },
+  const userId = session.user.id;
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { vipLevel: true },
   });
+  const isVip = user?.vipLevel !== "FREE";
 
   const now = new Date();
-  const decksWithDue = decks.map((deck) => {
-    const dueCount = deck.cards.filter((card) => {
-      const review = card.reviews[0];
-      return !review || review.dueAt <= now;
-    }).length;
-    return { id: deck.id, name: deck.name, description: deck.description, totalCards: deck._count.cards, dueCount };
+
+  // All reviews by this user
+  const reviews = await prisma.cardReview.findMany({
+    where: { userId },
+    select: { repetitions: true, dueAt: true, flashcardId: true },
+  });
+  const reviewedIds = new Set(reviews.map((r) => r.flashcardId));
+
+  // Compute SR level counts
+  const l1 = reviews.filter((r) => r.repetitions === 0).length;
+  const l2 = reviews.filter((r) => r.repetitions === 1).length;
+  const l3 = reviews.filter((r) => r.repetitions === 2).length;
+  const l4 = reviews.filter((r) => r.repetitions >= 3 && r.repetitions <= 4).length;
+  const l5 = reviews.filter((r) => r.repetitions >= 5).length;
+  const dueFromReviewed = reviews.filter((r) => r.dueAt <= now).length;
+
+  // User's personal decks
+  const personalDecks = await prisma.flashcardDeck.findMany({
+    where: { ownerId: userId },
+    orderBy: { createdAt: "desc" },
+    include: { cards: { select: { id: true, reviews: { where: { userId }, select: { dueAt: true } } } } },
   });
 
-  return (
-    <div className="mx-auto max-w-3xl">
-      <div className="mb-6 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <BookOpenCheck className="h-6 w-6 text-accent" />
-          <h1 className="text-xl font-semibold">Học tập</h1>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/learn/quiz" className={buttonVariants("glass")}>
-            <Trophy className="h-4 w-4" />
-            Mini Quiz
-          </Link>
-          <Link href="/learn/create" className={buttonVariants("primary")}>
-            <Plus className="h-4 w-4" />
-            Tạo bộ thẻ
-          </Link>
-        </div>
-      </div>
+  // System decks
+  const systemDecks = await prisma.flashcardDeck.findMany({
+    where: { isSystem: true },
+    orderBy: { createdAt: "asc" },
+    include: { cards: { select: { id: true, reviews: { where: { userId }, select: { dueAt: true } } } } },
+  });
 
-      {decksWithDue.length === 0 ? (
-        <p className="py-12 text-center text-sm text-muted">Chưa có bộ thẻ ghi nhớ nào. Hãy tạo bộ thẻ đầu tiên!</p>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2">
-          {decksWithDue.map((deck) => (
-            <Link key={deck.id} href={`/learn/${deck.id}`}>
-              <GlassCard className="p-4 transition hover:-translate-y-0.5">
-                <h3 className="font-semibold">{deck.name}</h3>
-                {deck.description && <p className="mt-1 text-xs text-muted line-clamp-2">{deck.description}</p>}
-                <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-muted">{deck.totalCards} thẻ</span>
-                  {deck.dueCount > 0 && (
-                    <span className="rounded-full bg-accent/15 px-2 py-0.5 font-medium text-accent">
-                      {deck.dueCount} cần ôn tập
-                    </span>
-                  )}
-                </div>
-              </GlassCard>
-            </Link>
-          ))}
-        </div>
-      )}
-    </div>
+  function toDeckCard(deck: typeof personalDecks[0]): DeckCard {
+    const newCards = deck.cards.filter((c) => !reviewedIds.has(c.id));
+    const dueCards = deck.cards.filter((c) => {
+      const r = c.reviews[0];
+      return r ? r.dueAt <= now : true;
+    });
+    return {
+      id: deck.id,
+      name: deck.name,
+      description: deck.description,
+      language: (deck as typeof systemDecks[0]).language ?? "zh-CN",
+      isSystem: (deck as typeof systemDecks[0]).isSystem ?? false,
+      isVip: (deck as typeof systemDecks[0]).isVip ?? false,
+      totalCards: deck.cards.length,
+      dueCount: dueCards.length,
+      newCount: newCards.length,
+    };
+  }
+
+  // New cards across accessible decks (personal + free system + vip if vip user)
+  const accessibleNewCount = [
+    ...personalDecks,
+    ...systemDecks.filter((d) => !d.isVip || isVip),
+  ]
+    .flatMap((d) => d.cards)
+    .filter((c) => !reviewedIds.has(c.id)).length;
+
+  const srStats: SRStats = {
+    l1: l1 + accessibleNewCount,
+    l2,
+    l3,
+    l4,
+    l5,
+    dueTotal: dueFromReviewed + accessibleNewCount,
+  };
+
+  return (
+    <LearnPageClient
+      personalDecks={personalDecks.map(toDeckCard)}
+      freeDecks={systemDecks.filter((d) => !d.isVip).map(toDeckCard)}
+      vipDecks={systemDecks.filter((d) => d.isVip).map(toDeckCard)}
+      srStats={srStats}
+      isVip={isVip}
+    />
   );
 }

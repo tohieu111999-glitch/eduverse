@@ -60,22 +60,40 @@
   }
 }
 
+@keyframes gradientShift {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes orb-pulse {
+  0%, 100% { transform: scale(1) translate(0, 0); opacity: 0.6; }
+  33% { transform: scale(1.15) translate(20px, -15px); opacity: 0.8; }
+  66% { transform: scale(0.9) translate(-15px, 10px); opacity: 0.5; }
+}
+
 :root {
   --background: #f6f7fb;
   --foreground: #0f172a;
   --surface: #ffffff;
-  --surface-glass: rgba(255, 255, 255, 0.6);
+  --surface-glass: rgba(248, 249, 252, 0.93);
   --border-glass: rgba(15, 23, 42, 0.08);
   --muted: #64748b;
 }
 
 .dark {
   --background: #05050a;
-  --foreground: #e7e9f5;
+  --foreground: #c2c5d8;
   --surface: #111118;
-  --surface-glass: rgba(17, 17, 24, 0.55);
+  --surface-glass: rgba(18, 18, 28, 0.92);
   --border-glass: rgba(255, 255, 255, 0.08);
-  --muted: #94a3b8;
+  --muted: #7a839a;
 }
 
 @theme inline {
@@ -97,12 +115,47 @@ body {
   font-family: var(--font-sans), Arial, Helvetica, sans-serif;
 }
 
+select option {
+  background-color: var(--surface);
+  color: var(--foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--muted);
+  opacity: 0.7;
+}
+
 @layer utilities {
+  .text-gradient-animated {
+    background: linear-gradient(270deg, #6366f1, #a855f7, #0ea5e9, #ec4899, #6366f1);
+    background-size: 400% 400%;
+    animation: gradientShift 6s ease infinite;
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+
+  .btn-glow-primary {
+    box-shadow: 0 0 20px rgba(99, 102, 241, 0.45), 0 0 50px rgba(99, 102, 241, 0.2);
+    transition: box-shadow 0.3s ease, transform 0.2s ease;
+  }
+  .btn-glow-primary:hover {
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.65), 0 0 80px rgba(99, 102, 241, 0.3);
+    transform: translateY(-1px);
+  }
+
+  .card-glow:hover {
+    box-shadow: 0 0 0 1px rgba(99, 102, 241, 0.4), 0 0 20px rgba(99, 102, 241, 0.15);
+  }
+
+  .orb-animate {
+    animation: orb-pulse 8s ease-in-out infinite;
+  }
+
   .glass {
     background: var(--surface-glass);
     border: 1px solid var(--border-glass);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
   }
 
   .gradient-cyber {

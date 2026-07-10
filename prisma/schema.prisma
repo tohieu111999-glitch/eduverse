@@ -23,6 +23,15 @@ model User {
   exp          Int       @default(0)
   level        Int       @default(1)
   coins        Int       @default(0)
+  bankName        String?
+  bankBin         String?
+  bankAccount     String?
+  bankAccountName String?
+  streak           Int       @default(0)
+  longestStreak    Int       @default(0)
+  lastActiveDate   DateTime?
+  streak7Claimed   Boolean   @default(false)
+  streak30Claimed  Boolean   @default(false)
   isVerified   Boolean   @default(false)
   isBanned     Boolean   @default(false)
   createdAt    DateTime  @default(now())
@@ -70,12 +79,74 @@ model User {
   auditLogs             AuditLog[]
   withdrawals           Withdrawal[]
   wordLookups           WordLookup[]
+  searchHistory         SearchHistory[]
   coursesTeaching       Course[]               @relation("CourseInstructor")
   courseEnrollments     CourseEnrollment[]
   courseRatings         CourseRating[]
   lessonProgress        LessonProgress[]
   assignmentSubmissions AssignmentSubmission[]
   certificates          Certificate[]
+  dailyCheckins         DailyCheckin[]
+  examAttempts          ExamAttempt[]
+  translateHistory      TranslateHistory[]
+  settings              UserSettings?
+  feedbacks             Feedback[]
+  questProgress         UserQuestProgress[]
+}
+
+model DailyQuest {
+  id          String              @id @default(cuid())
+  code        String              @unique
+  title       String
+  description String
+  target      Int
+  expReward   Int                 @default(0)
+  coinReward  Int                 @default(0)
+  icon        String              @default("Target")
+  progress    UserQuestProgress[]
+}
+
+model UserQuestProgress {
+  id        String     @id @default(cuid())
+  userId    String
+  user      User       @relation(fields: [userId], references: [id])
+  questId   String
+  quest     DailyQuest @relation(fields: [questId], references: [id])
+  progress  Int        @default(0)
+  completed Boolean    @default(false)
+  claimedAt DateTime?
+  date      String     // "YYYY-MM-DD"
+
+  @@unique([userId, questId, date])
+}
+
+model UserSettings {
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  user                User     @relation(fields: [userId], references: [id])
+  darkMode            Boolean  @default(false)
+  reminderEnabled     Boolean  @default(false)
+  reminderTimesPerDay Int      @default(3)
+  reminderStartHour   Int      @default(8)
+  reminderEndHour     Int      @default(21)
+  reminderDays        Int[]    @default([1, 2, 3, 4, 5, 6, 7])
+  showHanViet         Boolean  @default(true)
+  learningMode        String   @default("simplified")
+  phoneticType        String   @default("pinyin")
+  language            String   @default("vi")
+  fontSize            Int      @default(16)
+  voiceGender         String   @default("auto")
+  voiceSpeed          Float    @default(1.0)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model Feedback {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id])
+  content   String   @db.Text
+  createdAt DateTime @default(now())
 }
 
 model Account {
@@ -115,8 +186,11 @@ model VerificationToken {
 
 model Post {
   id        String    @id @default(cuid())
+  title     String?
   content   String
   images    String[]
+  isPinned  Boolean   @default(false)
+  views     Int       @default(0)
   authorId  String
   author    User      @relation(fields: [authorId], references: [id])
   likes     Like[]
@@ -167,6 +241,7 @@ model Document {
   fileUrl     String
   coverImage  String?
   category    String
+  subject     String?
   sellerId    String
   seller      User           @relation(fields: [sellerId], references: [id])
   orders      Order[]
@@ -182,10 +257,15 @@ model Order {
   buyer      User        @relation("BuyerOrders", fields: [buyerId], references: [id])
   sellerId   String
   seller     User        @relation("SellerOrders", fields: [sellerId], references: [id])
-  documentId String
-  document   Document    @relation(fields: [documentId], references: [id])
-  amount     Int
-  commission Int
+  documentId String?
+  document   Document?   @relation(fields: [documentId], references: [id])
+  courseId   String?
+  course     Course?     @relation("CourseOrders", fields: [courseId], references: [id])
+  amount     Int         @default(0)
+  commission Int         @default(0)
+  amountVnd  Int         @default(0)
+  paymentRef String?     @unique
+  paidAt     DateTime?
   status     OrderStatus @default(PENDING)
   createdAt  DateTime    @default(now())
   updatedAt  DateTime    @updatedAt
@@ -368,6 +448,15 @@ enum TopupStatus {
   CANCELLED
 }
 
+// Admin-configurable VIP pricing. Always upsert with id="singleton".
+model VipConfig {
+  id             String   @id @default("singleton")
+  monthlyCoins   Int      @default(600)
+  yearlyCoins    Int      @default(4320)
+  lifetimeCoins  Int      @default(9999)
+  updatedAt      DateTime @updatedAt
+}
+
 // Audit trail for VIP purchases — without this, VIP revenue is invisible to
 // the revenue dashboard (coins are just decremented from User with no record).
 model VipPurchase {
@@ -431,9 +520,12 @@ model FlashcardDeck {
   id          String      @id @default(cuid())
   name        String
   description String?
-  ownerId     String
-  owner       User        @relation(fields: [ownerId], references: [id])
+  language    String      @default("zh-CN")
+  ownerId     String?
+  owner       User?       @relation(fields: [ownerId], references: [id])
   cards       Flashcard[]
+  isSystem    Boolean     @default(false)
+  isVip       Boolean     @default(false)
   createdAt   DateTime    @default(now())
 }
 
@@ -443,6 +535,9 @@ model Flashcard {
   deck      FlashcardDeck @relation(fields: [deckId], references: [id], onDelete: Cascade)
   front     String
   back      String
+  pinyin    String?
+  hanViet   String?
+  example   Json?
   createdAt DateTime      @default(now())
   reviews   CardReview[]
 }
@@ -587,12 +682,14 @@ model Course {
   price        Int
   coverImage   String?
   category     String
+  subject      String?
   level        String?
   instructorId String
   instructor   User               @relation("CourseInstructor", fields: [instructorId], references: [id])
   status       CourseStatus       @default(PENDING)
   sections     CourseSection[]
   enrollments  CourseEnrollment[]
+  orders       Order[]            @relation("CourseOrders")
   ratings      CourseRating[]
   certificates Certificate[]
   createdAt    DateTime           @default(now())
@@ -696,6 +793,104 @@ model CourseRating {
   createdAt DateTime @default(now())
 
   @@unique([courseId, userId])
+}
+
+// ===== Dictionary search history =====
+// Caches AI lookup results so repeated queries don't re-hit the API,
+// and provides the /dictionary/history page with per-user search logs.
+model SearchHistory {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  query     String
+  direction String   @default("CN_TO_VI")
+  result    Json
+  createdAt DateTime @default(now())
+}
+
+// ===== Translation history =====
+model TranslateHistory {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  sourceText  String   @db.Text
+  targetText  String   @db.Text
+  pinyin      String?  @db.Text
+  sourceLang  String
+  targetLang  String
+  createdAt   DateTime @default(now())
+}
+
+// ===== Daily check-in / streak =====
+// One row per user per day (midnight UTC). updateStreak() upserts here and
+// updates User.streak / longestStreak so the dashboard widget reads a single
+// row instead of scanning multiple activity tables.
+model DailyCheckin {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([userId, date])
+}
+
+// ===== Exam / Thi thử =====
+
+enum ExamType {
+  HSK
+  TOCFL
+  JLPT
+  TOPIK
+  CUSTOM
+}
+
+enum ExamSection {
+  LISTENING
+  READING
+}
+
+model Exam {
+  id          String         @id @default(cuid())
+  title       String
+  description String?
+  examType    ExamType       @default(HSK)
+  level       String
+  duration    Int
+  skills      String[]
+  isActive    Boolean        @default(true)
+  questions   ExamQuestion[]
+  attempts    ExamAttempt[]
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+model ExamQuestion {
+  id            String      @id @default(cuid())
+  examId        String
+  exam          Exam        @relation(fields: [examId], references: [id], onDelete: Cascade)
+  section       ExamSection @default(READING)
+  content       String
+  imageUrl      String?
+  audioUrl      String?
+  options       Json
+  correctAnswer String
+  explanation   String?
+  order         Int         @default(0)
+}
+
+model ExamAttempt {
+  id             String    @id @default(cuid())
+  userId         String
+  user           User      @relation(fields: [userId], references: [id])
+  examId         String
+  exam           Exam      @relation(fields: [examId], references: [id], onDelete: Cascade)
+  answers        Json      @default("{}")
+  score          Int       @default(0)
+  correctCount   Int       @default(0)
+  totalQuestions Int       @default(0)
+  startedAt      DateTime  @default(now())
+  finishedAt     DateTime?
 }
 
 // ===== Certificates (Phase 2 depends on this existing as a target) =====

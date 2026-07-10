@@ -3,6 +3,7 @@ import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
 import { Sidebar } from "@/src/components/dashboard/sidebar";
 import { Topbar } from "@/src/components/dashboard/topbar";
+import { MobileNav } from "@/src/components/dashboard/mobile-nav";
 import { SocketProvider } from "@/src/components/realtime/socket-provider";
 import { CallProvider } from "@/src/components/realtime/call-provider";
 import { CallUI } from "@/src/components/realtime/call-ui";
@@ -34,10 +35,12 @@ export default async function DashboardLayout({ children }: { children: React.Re
               exp={user.exp}
               coins={user.coins}
             />
-            <main className="flex-1 overflow-y-auto p-4 sm:p-6">{children}</main>
+            {/* pb-20 on mobile to avoid content hiding behind the fixed bottom nav */}
+            <main className="flex-1 overflow-y-auto p-4 pb-24 sm:p-6 sm:pb-6">{children}</main>
           </div>
         </div>
         <CallUI />
+        <MobileNav />
       </CallProvider>
     </SocketProvider>
   );

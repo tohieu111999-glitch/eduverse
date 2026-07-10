@@ -9,6 +9,7 @@ import { GlassCard } from "@/src/components/ui/glass-card";
 import { buttonVariants } from "@/src/components/ui/button";
 import { ExpBar } from "@/src/components/dashboard/exp-bar";
 import { PostCard } from "@/src/components/post/post-card";
+import { VipCrown } from "@/src/components/vip-crown";
 import { AchievementBadge } from "@/src/components/achievement-badge";
 import { FollowButton } from "./follow-button";
 import { MessageButton } from "./message-button";
@@ -76,7 +77,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
             )}
           </span>
           <div>
-            <h1 className="text-xl font-semibold">{name}</h1>
+            <div className="flex items-center gap-2">
+              <h1 className="text-xl font-semibold">{name}</h1>
+              <VipCrown vipLevel={user.vipLevel} vipExpiresAt={user.vipExpiresAt} size="md" />
+            </div>
             <p className="text-sm text-muted">
               {user.username ? `@${user.username}` : ""} · Tham gia {joined}
             </p>

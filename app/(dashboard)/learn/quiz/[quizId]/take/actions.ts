@@ -5,6 +5,8 @@ import { prisma } from "@/src/lib/prisma";
 import { awardExp } from "@/src/lib/gamification";
 import { awardAchievement } from "@/src/lib/achievements";
 import { canViewQuiz } from "@/src/lib/quiz-access";
+import { updateStreak } from "@/src/lib/streak";
+import { incrementQuestProgress, QUEST_CODES } from "@/src/lib/daily-quests";
 
 function normalize(s: string) {
   return s.trim().toLowerCase();
@@ -45,6 +47,9 @@ export async function submitQuizAttemptAction(quizId: string, answers: { questio
   });
 
   await awardExp(session.user.id, score * 3);
+  await updateStreak(session.user.id);
+
+  await incrementQuestProgress(session.user.id, QUEST_CODES.QUIZ_1);
 
   const attemptCount = await prisma.quizAttempt.count({ where: { userId: session.user.id } });
   if (attemptCount === 1) await awardAchievement(session.user.id, "FIRST_QUIZ");

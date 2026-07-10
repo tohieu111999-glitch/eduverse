@@ -1,9 +1,11 @@
 "use server";
 
 import { z } from "zod";
+import { revalidatePath } from "next/cache";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
 import { awardExp } from "@/src/lib/gamification";
+import { incrementQuestProgress, QUEST_CODES } from "@/src/lib/daily-quests";
 
 export async function toggleLikeAction(postId: string): Promise<{ error?: string; liked?: boolean }> {
   const session = await auth();
@@ -38,7 +40,9 @@ export async function addCommentAction(postId: string, _prevState: AddCommentSta
   await prisma.comment.create({
     data: { content: parsed.data.content, postId, authorId: session.user.id },
   });
-  await awardExp(session.user.id, 5);
+  await awardExp(session.user.id, 2);
+  await incrementQuestProgress(session.user.id, QUEST_CODES.COMMENT_2);
 
+  revalidatePath("/community");
   return {};
 }

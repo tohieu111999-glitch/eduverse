@@ -104,3 +104,32 @@ export async function disableTwoFactorAction(
   await prisma.user.update({ where: { id: session.user.id }, data: { twoFactorEnabled: false, twoFactorSecret: null } });
   return { success: true };
 }
+
+export type BankState = { error?: string; success?: boolean };
+
+export async function saveBankAccountAction(
+  _prevState: BankState | null,
+  formData: FormData,
+): Promise<BankState> {
+  const session = await auth();
+  if (!session?.user) return { error: "Bạn cần đăng nhập" };
+
+  const bankName = String(formData.get("bankName") ?? "").trim();
+  const bankBin = String(formData.get("bankBin") ?? "").trim();
+  const bankAccount = String(formData.get("bankAccount") ?? "").trim().replace(/\s/g, "");
+  const bankAccountName = String(formData.get("bankAccountName") ?? "").trim().toUpperCase();
+
+  if (!bankName || !bankBin || !bankAccount || !bankAccountName) {
+    return { error: "Vui lòng điền đầy đủ thông tin ngân hàng" };
+  }
+  if (!/^\d{6,10}$/.test(bankBin)) return { error: "Mã ngân hàng (BIN) không hợp lệ" };
+  if (!/^\d{6,19}$/.test(bankAccount)) return { error: "Số tài khoản không hợp lệ" };
+
+  await prisma.user.update({
+    where: { id: session.user.id },
+    data: { bankName, bankBin, bankAccount, bankAccountName },
+  });
+
+  revalidatePath("/settings");
+  return { success: true };
+}

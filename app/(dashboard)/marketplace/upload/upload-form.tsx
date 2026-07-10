@@ -6,6 +6,8 @@ import { Button } from "@/src/components/ui/button";
 import { GlassCard } from "@/src/components/ui/glass-card";
 import { DOCUMENT_CATEGORIES } from "@/src/lib/marketplace";
 
+const SUBJECTS = ["Toán học", "Vật lý", "Hóa học", "Sinh học", "Ngữ văn", "Lịch sử", "Địa lý", "Tiếng Anh", "Tiếng Trung", "Tiếng Nhật", "Tiếng Hàn", "Lập trình", "Kinh tế", "Khác"];
+
 const initialState: UploadDocumentState = {};
 
 const inputClass =
@@ -18,7 +20,7 @@ export function UploadForm() {
     <GlassCard className="mx-auto max-w-xl p-6">
       <h1 className="text-xl font-semibold">Đăng bán tài liệu</h1>
       <p className="mt-1 text-sm text-muted">
-        Tài liệu sẽ được admin kiểm duyệt trước khi hiển thị công khai trên chợ tài liệu.
+        Tài liệu sẽ được admin kiểm duyệt trước khi hiển thị công khai. Người mua thanh toán trực tiếp qua chuyển khoản ngân hàng.
       </p>
 
       <form action={formAction} className="mt-6 space-y-4">
@@ -38,24 +40,33 @@ export function UploadForm() {
 
         <div className="grid grid-cols-2 gap-4">
           <div>
+            <label className="mb-1 block text-sm font-medium">Môn học</label>
+            <select name="subject" className={inputClass} defaultValue="">
+              <option value="">-- Không chọn --</option>
+              {SUBJECTS.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+          </div>
+          <div>
             <label className="mb-1 block text-sm font-medium">Danh mục</label>
             <select name="category" className={inputClass} required defaultValue="">
-              <option value="" disabled>
-                Chọn danh mục
-              </option>
+              <option value="" disabled>Chọn danh mục</option>
               {DOCUMENT_CATEGORIES.map((category) => (
-                <option key={category} value={category}>
-                  {category}
-                </option>
+                <option key={category} value={category}>{category}</option>
               ))}
             </select>
             {state.fieldErrors?.category && <p className="mt-1 text-xs text-red-500">{state.fieldErrors.category}</p>}
           </div>
-          <div>
-            <label className="mb-1 block text-sm font-medium">Giá (coins)</label>
-            <input name="price" type="number" min={0} max={100000} className={inputClass} defaultValue={0} required />
-            {state.fieldErrors?.price && <p className="mt-1 text-xs text-red-500">{state.fieldErrors.price}</p>}
-          </div>
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium">
+            Giá (VND) · <span className="text-muted font-normal">Nhập 0 để miễn phí</span>
+          </label>
+          <input name="price" type="number" min={0} max={100000000} step={1000} className={inputClass} defaultValue={0} required />
+          <p className="mt-1 text-xs text-muted">Người mua sẽ chuyển khoản thẳng vào tài khoản ngân hàng của bạn</p>
+          {state.fieldErrors?.price && <p className="mt-1 text-xs text-red-500">{state.fieldErrors.price}</p>}
         </div>
 
         <div>
@@ -74,7 +85,7 @@ export function UploadForm() {
           <input name="cover" type="file" accept="image/*" className={inputClass} />
         </div>
 
-        {state.error && <p className="text-sm text-red-500">{state.error}</p>}
+        {state.error && <p className="rounded-xl bg-red-500/10 p-3 text-sm text-red-500">{state.error}</p>}
 
         <Button type="submit" disabled={pending} className="w-full">
           {pending ? "Đang tải lên..." : "Đăng bán"}

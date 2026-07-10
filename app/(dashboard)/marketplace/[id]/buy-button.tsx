@@ -1,32 +1,47 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { purchaseDocumentAction } from "./actions";
-import { Button } from "@/src/components/ui/button";
+import { ShoppingCart } from "lucide-react";
+import { PaymentDialog } from "@/src/components/payment/payment-dialog";
+import { createDocumentOrderAction, confirmDocumentPaymentAction } from "./actions";
+import { formatVnd } from "@/src/lib/payment";
 
-export function BuyButton({ documentId, price }: { documentId: string; price: number }) {
-  const router = useRouter();
-  const [pending, setPending] = useState(false);
+type SellerBank = {
+  bankName: string;
+  bankBin: string;
+  bankAccount: string;
+  bankAccountName: string;
+} | null;
 
-  async function handleBuy() {
-    setPending(true);
-    const result = await purchaseDocumentAction(documentId);
-    setPending(false);
-
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Mua tài liệu thành công!");
-    router.refresh();
-  }
+export function BuyButton({
+  documentId,
+  price,
+  sellerBank,
+}: {
+  documentId: string;
+  price: number;
+  sellerBank: SellerBank;
+}) {
+  const [open, setOpen] = useState(false);
 
   return (
-    <Button onClick={handleBuy} disabled={pending} className="w-full">
-      {pending ? "Đang xử lý..." : `Mua bằng ${price} coins`}
-    </Button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90"
+      >
+        <ShoppingCart className="h-4 w-4" />
+        {price === 0 ? "Tải miễn phí" : `Mua · ${formatVnd(price)}`}
+      </button>
+
+      <PaymentDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        sellerBank={sellerBank}
+        amountVnd={price}
+        createOrderAction={() => createDocumentOrderAction(documentId)}
+        confirmAction={confirmDocumentPaymentAction}
+      />
+    </>
   );
 }

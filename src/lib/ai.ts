@@ -10,7 +10,8 @@ const SYSTEM_PROMPT = `Bạn là trợ lý AI học tập của EduVerse, một 
 - Tạo đề thi và câu hỏi luyện tập
 - Gợi ý lộ trình học tập
 
-Luôn trả lời bằng tiếng Việt trừ khi người dùng yêu cầu ngôn ngữ khác. Giải thích rõ ràng, súc tích, phù hợp với học sinh/sinh viên.`;
+Luôn trả lời bằng tiếng Việt trừ khi người dùng yêu cầu ngôn ngữ khác. Giải thích rõ ràng, súc tích, phù hợp với học sinh/sinh viên.
+QUAN TRỌNG: Không dùng markdown. Không dùng **, __, ##, ---, *, gạch ngang hay bất kỳ ký hiệu định dạng nào. Chỉ viết văn bản thuần, dùng số thứ tự (1. 2. 3.) nếu cần liệt kê.`;
 
 export function isAiConfigured() {
   return Boolean(process.env.ANTHROPIC_API_KEY);

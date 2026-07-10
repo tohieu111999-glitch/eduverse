@@ -3,44 +3,88 @@
 import { revalidatePath } from "next/cache";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
-import { splitCommission } from "@/src/lib/marketplace";
+import { generatePaymentRef } from "@/src/lib/payment";
 import { awardAchievement } from "@/src/lib/achievements";
 
-export type PurchaseState = { error?: string; success?: boolean };
-
-export async function purchaseCourseAction(courseId: string): Promise<PurchaseState> {
+export async function createCourseOrderAction(
+  courseId: string,
+): Promise<{ orderId: string; paymentRef: string } | { error: string }> {
   const session = await auth();
-  if (!session?.user) return { error: "Bạn cần đăng nhập để mua khoá học" };
+  if (!session?.user) return { error: "Bạn cần đăng nhập" };
 
-  const result = await prisma.$transaction(async (tx) => {
-    const course = await tx.course.findUnique({ where: { id: courseId } });
-    if (!course || course.status !== "APPROVED") return { error: "Khoá học không khả dụng" };
-    if (course.instructorId === session.user.id) return { error: "Bạn không thể mua khoá học của chính mình" };
-
-    const already = await tx.courseEnrollment.findUnique({
-      where: { courseId_userId: { courseId, userId: session.user.id } },
-    });
-    if (already) return { error: "Bạn đã sở hữu khoá học này" };
-
-    const buyer = await tx.user.findUnique({ where: { id: session.user.id }, select: { coins: true } });
-    if (!buyer || buyer.coins < course.price) return { error: "Số dư coins không đủ để mua khoá học này" };
-
-    if (course.price > 0) {
-      const { sellerPayout } = splitCommission(course.price);
-      await tx.user.update({ where: { id: session.user.id }, data: { coins: { decrement: course.price } } });
-      await tx.user.update({ where: { id: course.instructorId }, data: { coins: { increment: sellerPayout } } });
-    }
-
-    await tx.courseEnrollment.create({ data: { courseId, userId: session.user.id } });
-
-    return { success: true };
+  const course = await prisma.course.findUnique({
+    where: { id: courseId, status: "APPROVED" },
+    select: { instructorId: true, price: true },
   });
+  if (!course) return { error: "Không tìm thấy khoá học" };
+  if (course.instructorId === session.user.id) return { error: "Bạn không thể mua khoá học của chính mình" };
 
-  if (result.success) {
+  const already = await prisma.courseEnrollment.findUnique({
+    where: { courseId_userId: { courseId, userId: session.user.id } },
+  });
+  if (already) return { error: "Bạn đã đăng ký khoá học này" };
+
+  if (course.price === 0) {
+    await prisma.courseEnrollment.create({ data: { courseId, userId: session.user.id } });
+    await prisma.order.create({
+      data: {
+        buyerId: session.user.id,
+        sellerId: course.instructorId,
+        courseId,
+        amountVnd: 0,
+        status: "PAID",
+        paidAt: new Date(),
+      },
+    });
     revalidatePath(`/courses/${courseId}`);
     await awardAchievement(session.user.id, "FIRST_COURSE_ENROLLED");
+    return { orderId: "free", paymentRef: "FREE" };
   }
-  return result;
+
+  const paymentRef = generatePaymentRef("CRS");
+  const order = await prisma.order.create({
+    data: {
+      buyerId: session.user.id,
+      sellerId: course.instructorId,
+      courseId,
+      amountVnd: course.price,
+      paymentRef,
+      status: "PENDING",
+    },
+  });
+
+  return { orderId: order.id, paymentRef };
+}
+
+export async function confirmCoursePaymentAction(
+  orderId: string,
+): Promise<{ success: boolean } | { error: string }> {
+  const session = await auth();
+  if (!session?.user) return { error: "Bạn cần đăng nhập" };
+
+  const order = await prisma.order.findUnique({
+    where: { id: orderId },
+    select: { buyerId: true, status: true, courseId: true },
+  });
+
+  if (!order) return { error: "Không tìm thấy đơn hàng" };
+  if (order.buyerId !== session.user.id) return { error: "Không có quyền truy cập" };
+  if (order.status !== "PENDING") return { error: "Đơn hàng đã được xử lý" };
+  if (!order.courseId) return { error: "Đơn hàng không hợp lệ" };
+
+  await prisma.order.update({
+    where: { id: orderId },
+    data: { status: "PAID", paidAt: new Date() },
+  });
+
+  await prisma.courseEnrollment.create({
+    data: { courseId: order.courseId, userId: session.user.id },
+  });
+
+  revalidatePath(`/courses/${order.courseId}`);
+  await awardAchievement(session.user.id, "FIRST_COURSE_ENROLLED");
+
+  return { success: true };
 }
 
 export type RatingState = { error?: string };

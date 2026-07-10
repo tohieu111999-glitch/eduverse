@@ -14,6 +14,7 @@ export default async function ReviewPage({ params }: { params: Promise<{ deckId:
       cards: {
         orderBy: { createdAt: "asc" },
         include: { reviews: { where: { userId: session.user.id } } },
+        // pinyin / hanViet / example are selected automatically via include
       },
     },
   });
@@ -34,7 +35,15 @@ export default async function ReviewPage({ params }: { params: Promise<{ deckId:
       <h1 className="mb-4 text-center text-lg font-semibold">{deck.name}</h1>
       <ReviewSession
         deckId={deck.id}
-        cards={cardsForSession.map((c) => ({ id: c.id, front: c.front, back: c.back }))}
+        deckLanguage={deck.language}
+        cards={cardsForSession.map((c) => ({
+          id: c.id,
+          front: c.front,
+          back: c.back,
+          pinyin: c.pinyin ?? undefined,
+          hanViet: c.hanViet ?? undefined,
+          example: c.example as { zh: string; pinyin: string; vi: string } | null,
+        }))}
       />
     </div>
   );

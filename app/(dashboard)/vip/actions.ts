@@ -1,18 +1,25 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth } from "@/src/lib/auth";
 import { prisma } from "@/src/lib/prisma";
-import { VIP_PACKAGES } from "@/src/lib/vip";
+import { buildVipPackages, DEFAULT_VIP_CONFIG, LIFETIME_EXPIRY } from "@/src/lib/vip";
 
-export type PurchaseVipState = { error?: string };
+export type PurchaseVipState = { error?: string; insufficientCoins?: boolean };
 
-export async function purchaseVipAction(_prevState: PurchaseVipState, formData: FormData): Promise<PurchaseVipState> {
+export async function purchaseVipAction(
+  _prevState: PurchaseVipState,
+  formData: FormData,
+): Promise<PurchaseVipState> {
   const session = await auth();
   if (!session?.user) return { error: "Bạn cần đăng nhập" };
 
-  const days = Number(formData.get("days"));
-  const pkg = VIP_PACKAGES.find((p) => p.days === days);
+  const key = String(formData.get("key") ?? "");
+
+  const config = await prisma.vipConfig.findFirst() ?? DEFAULT_VIP_CONFIG;
+  const packages = buildVipPackages(config);
+  const pkg = packages.find((p) => p.key === key);
   if (!pkg) return { error: "Gói VIP không hợp lệ" };
 
   const result = await prisma.$transaction(async (tx) => {
@@ -20,11 +27,19 @@ export async function purchaseVipAction(_prevState: PurchaseVipState, formData: 
       where: { id: session.user.id },
       select: { coins: true, vipExpiresAt: true },
     });
-    if (!user || user.coins < pkg.coins) return { error: "Số dư coins không đủ để mua gói VIP này" };
+    if (!user || user.coins < pkg.coins) {
+      return { error: "Số dư coins không đủ", insufficientCoins: true };
+    }
 
     const now = new Date();
-    const base = user.vipExpiresAt && user.vipExpiresAt > now ? user.vipExpiresAt : now;
-    const newExpiry = new Date(base.getTime() + pkg.days * 24 * 60 * 60 * 1000);
+    let newExpiry: Date;
+    if (pkg.days === 0) {
+      // Lifetime
+      newExpiry = LIFETIME_EXPIRY;
+    } else {
+      const base = user.vipExpiresAt && user.vipExpiresAt > now ? user.vipExpiresAt : now;
+      newExpiry = new Date(base.getTime() + pkg.days * 86400_000);
+    }
 
     await tx.user.update({
       where: { id: session.user.id },
@@ -32,7 +47,12 @@ export async function purchaseVipAction(_prevState: PurchaseVipState, formData: 
     });
 
     await tx.vipPurchase.create({
-      data: { userId: session.user.id, vipLevel: "VIP", days: pkg.days, coinsSpent: pkg.coins },
+      data: {
+        userId: session.user.id,
+        vipLevel: "VIP",
+        days: pkg.days === 0 ? 36500 : pkg.days,
+        coinsSpent: pkg.coins,
+      },
     });
 
     return {};

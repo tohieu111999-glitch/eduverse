@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft, Banknote, ClipboardList, Coins, FileText, GraduationCap, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
+import { ArrowLeft, Banknote, ClipboardList, Coins, Crown, FileText, GraduationCap, PenLine, Settings, ShieldCheck, TrendingUp, Users } from "lucide-react";
 import { requireAdmin } from "@/src/lib/admin";
 import { prisma } from "@/src/lib/prisma";
 import { GlassCard } from "@/src/components/ui/glass-card";
@@ -77,6 +77,13 @@ export default async function AdminPage() {
             <p className="text-sm text-muted">{totalUsers} người dùng</p>
           </GlassCard>
         </Link>
+        <Link href="/admin/exams">
+          <GlassCard className="p-5 transition hover:-translate-y-0.5">
+            <PenLine className="h-6 w-6 text-cyan-400" />
+            <h2 className="mt-3 font-semibold">Quản lý đề thi</h2>
+            <p className="text-sm text-muted">Tạo, sửa, ẩn/hiện đề thi thử HSK, TOCFL</p>
+          </GlassCard>
+        </Link>
         <Link href="/admin/audit-log">
           <GlassCard className="p-5 transition hover:-translate-y-0.5">
             <ClipboardList className="h-6 w-6 text-purple-400" />
@@ -89,6 +96,13 @@ export default async function AdminPage() {
             <Settings className="h-6 w-6 text-muted" />
             <h2 className="mt-3 font-semibold">Cài đặt hệ thống</h2>
             <p className="text-sm text-muted">Chế độ tự phê duyệt nạp coin</p>
+          </GlassCard>
+        </Link>
+        <Link href="/admin/vip">
+          <GlassCard className="p-5 transition hover:-translate-y-0.5">
+            <Crown className="h-6 w-6 text-amber-400" />
+            <h2 className="mt-3 font-semibold">Cấu hình VIP</h2>
+            <p className="text-sm text-muted">Chỉnh giá gói VIP 1 tháng / năm / trọn đời</p>
           </GlassCard>
         </Link>
       </div>

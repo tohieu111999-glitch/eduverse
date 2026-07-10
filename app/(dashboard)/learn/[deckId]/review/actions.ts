@@ -5,6 +5,8 @@ import { prisma } from "@/src/lib/prisma";
 import { scheduleNextReview, type Quality } from "@/src/lib/srs";
 import { awardExp } from "@/src/lib/gamification";
 import { awardAchievement } from "@/src/lib/achievements";
+import { updateStreak } from "@/src/lib/streak";
+import { incrementQuestProgress, QUEST_CODES } from "@/src/lib/daily-quests";
 
 export async function submitReviewAction(flashcardId: string, quality: Quality) {
   const session = await auth();
@@ -25,7 +27,10 @@ export async function submitReviewAction(flashcardId: string, quality: Quality) 
     update: { ...next, lastReviewedAt: new Date() },
   });
 
-  await awardExp(session.user.id, 2);
+  await awardExp(session.user.id, 1);
+  await updateStreak(session.user.id);
+
+  await incrementQuestProgress(session.user.id, QUEST_CODES.FLASHCARD_10);
 
   const reviewCount = await prisma.cardReview.count({ where: { userId: session.user.id } });
   if (reviewCount === 1) await awardAchievement(session.user.id, "FIRST_REVIEW");

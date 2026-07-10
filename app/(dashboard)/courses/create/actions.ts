@@ -10,9 +10,10 @@ import { COURSE_CATEGORIES, COURSE_LEVELS } from "@/src/lib/courses";
 const createCourseSchema = z.object({
   title: z.string().trim().min(3, "Tên khoá học phải có ít nhất 3 ký tự").max(120),
   description: z.string().trim().min(10, "Mô tả phải có ít nhất 10 ký tự").max(2000),
-  price: z.coerce.number().int().min(0).max(100000),
+  price: z.coerce.number().int().min(0).max(100_000_000),
   category: z.enum(COURSE_CATEGORIES),
   level: z.enum(COURSE_LEVELS),
+  subject: z.string().trim().optional(),
 });
 
 export type CreateCourseState = { error?: string };
@@ -27,6 +28,7 @@ export async function createCourseAction(_prevState: CreateCourseState, formData
     price: formData.get("price"),
     category: formData.get("category"),
     level: formData.get("level"),
+    subject: formData.get("subject") ?? undefined,
   });
   if (!parsed.success) return { error: parsed.error.issues[0]?.message };
 
@@ -43,6 +45,7 @@ export async function createCourseAction(_prevState: CreateCourseState, formData
       price: parsed.data.price,
       category: parsed.data.category,
       level: parsed.data.level,
+      subject: parsed.data.subject ?? null,
       coverImage,
       instructorId: session.user.id,
     },

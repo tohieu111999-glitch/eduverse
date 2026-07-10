@@ -1,32 +1,66 @@
 "use client";
 
 import { useState } from "react";
+import { GraduationCap } from "lucide-react";
+import { PaymentDialog } from "@/src/components/payment/payment-dialog";
+import { createCourseOrderAction, confirmCoursePaymentAction } from "./actions";
+import { formatVnd } from "@/src/lib/payment";
 import { useRouter } from "next/navigation";
-import toast from "react-hot-toast";
-import { purchaseCourseAction } from "./actions";
-import { Button } from "@/src/components/ui/button";
 
-export function BuyCourseButton({ courseId, price }: { courseId: string; price: number }) {
+type SellerBank = {
+  bankName: string;
+  bankBin: string;
+  bankAccount: string;
+  bankAccountName: string;
+} | null;
+
+export function BuyCourseButton({
+  courseId,
+  price,
+  sellerBank,
+}: {
+  courseId: string;
+  price: number;
+  sellerBank: SellerBank;
+}) {
   const router = useRouter();
-  const [pending, setPending] = useState(false);
+  const [open, setOpen] = useState(false);
 
-  async function handleBuy() {
-    setPending(true);
-    const result = await purchaseCourseAction(courseId);
-    setPending(false);
-
-    if (result.error) {
-      toast.error(result.error);
-      return;
-    }
-
-    toast.success("Đăng ký khoá học thành công!");
+  async function handleFreeEnroll() {
+    await createCourseOrderAction(courseId);
     router.refresh();
   }
 
+  if (price === 0) {
+    return (
+      <button
+        onClick={handleFreeEnroll}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90"
+      >
+        <GraduationCap className="h-4 w-4" />
+        Đăng ký miễn phí
+      </button>
+    );
+  }
+
   return (
-    <Button onClick={handleBuy} disabled={pending} className="w-full">
-      {pending ? "Đang xử lý..." : price > 0 ? `Mua bằng ${price} coins` : "Đăng ký miễn phí"}
-    </Button>
+    <>
+      <button
+        onClick={() => setOpen(true)}
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-semibold text-white transition hover:opacity-90"
+      >
+        <GraduationCap className="h-4 w-4" />
+        Đăng ký · {formatVnd(price)}
+      </button>
+
+      <PaymentDialog
+        open={open}
+        onClose={() => setOpen(false)}
+        sellerBank={sellerBank}
+        amountVnd={price}
+        createOrderAction={() => createCourseOrderAction(courseId)}
+        confirmAction={confirmCoursePaymentAction}
+      />
+    </>
   );
 }

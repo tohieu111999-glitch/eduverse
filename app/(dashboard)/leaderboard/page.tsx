@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Trophy } from "lucide-react";
 import { prisma } from "@/src/lib/prisma";
 import { GlassCard } from "@/src/components/ui/glass-card";
+import { VipCrown } from "@/src/components/vip-crown";
 import { levelTitle } from "@/src/lib/utils";
 
 const RANK_COLORS = ["text-yellow-400", "text-zinc-300", "text-amber-600"];
@@ -10,7 +11,7 @@ export default async function LeaderboardPage() {
   const users = await prisma.user.findMany({
     orderBy: [{ level: "desc" }, { exp: "desc" }],
     take: 50,
-    select: { id: true, displayName: true, username: true, avatar: true, level: true, exp: true },
+    select: { id: true, displayName: true, username: true, avatar: true, level: true, exp: true, vipLevel: true, vipExpiresAt: true },
   });
 
   return (
@@ -40,7 +41,10 @@ export default async function LeaderboardPage() {
                   )}
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm font-medium">{name}</p>
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-sm font-medium">{name}</p>
+                    <VipCrown vipLevel={user.vipLevel} vipExpiresAt={user.vipExpiresAt} />
+                  </div>
                   <p className="text-xs text-muted">{levelTitle(user.level)}</p>
                 </div>
                 <div className="text-right text-sm">
