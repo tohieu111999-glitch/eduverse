@@ -1,12 +1,35 @@
 import NextAuth, { CredentialsSignin } from "next-auth";
 import Credentials from "next-auth/providers/credentials";
-import Google from "next-auth/providers/google";
 import Discord from "next-auth/providers/discord";
 import Facebook from "next-auth/providers/facebook";
+import type { OAuthConfig } from "next-auth/providers";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import bcrypt from "bcryptjs";
 import { prisma } from "./prisma";
 import { verifyTotp } from "./totp";
+
+function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
+  sub: string; name: string; email: string; picture: string;
+}> {
+  return {
+    id: "google",
+    name: "Google",
+    type: "oauth",
+    clientId,
+    clientSecret,
+    authorization: {
+      url: "https://accounts.google.com/o/oauth2/v2/auth",
+      params: { scope: "openid email profile", response_type: "code", access_type: "offline" },
+    },
+    token: "https://oauth2.googleapis.com/token",
+    userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
+    profile(profile) {
+      return { id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
+    },
+    checks: ["state"],
+    style: { brandColor: "#1a73e8" },
+  };
+}
 
 function deriveUsername(seed: string) {
   const base = seed.split("@")[0].replace(/[^a-zA-Z0-9_]/g, "").toLowerCase() || "user";
@@ -86,7 +109,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
     ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
-      ? [Google({ clientId: process.env.AUTH_GOOGLE_ID, clientSecret: process.env.AUTH_GOOGLE_SECRET, checks: ["state"] })]
+      ? [GoogleOAuth(process.env.AUTH_GOOGLE_ID, process.env.AUTH_GOOGLE_SECRET)]
       : []),
     ...(process.env.AUTH_DISCORD_ID && process.env.AUTH_DISCORD_SECRET
       ? [Discord({ clientId: process.env.AUTH_DISCORD_ID, clientSecret: process.env.AUTH_DISCORD_SECRET })]
