@@ -7,6 +7,7 @@ export default function LoginPage() {
     google: Boolean(process.env.AUTH_GOOGLE_ID),
     discord: Boolean(process.env.AUTH_DISCORD_ID),
     facebook: Boolean(process.env.AUTH_FACEBOOK_ID),
+    apple: Boolean(process.env.AUTH_APPLE_ID),
   };
 
   return (

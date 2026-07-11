@@ -91,7 +91,12 @@ export function LoginForm({ oauth }: { oauth: { google: boolean; discord: boolea
           <input name="identifier" className={inputClass} placeholder="ban@email.com" required />
         </div>
         <div>
-          <label className="mb-1 block text-sm font-medium">Mật khẩu</label>
+          <div className="mb-1 flex items-center justify-between">
+            <label className="text-sm font-medium">Mật khẩu</label>
+            <a href="/forgot-password" className="text-xs text-primary hover:underline">
+              Quên mật khẩu?
+            </a>
+          </div>
           <input name="password" type="password" className={inputClass} placeholder="••••••••" required />
         </div>
 

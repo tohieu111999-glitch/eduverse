@@ -36,6 +36,7 @@
     "react-dom": "19.2.4",
     "react-hot-toast": "^2.6.0",
     "react-pdf": "^10.4.1",
+    "resend": "^6.17.2",
     "socket.io": "^4.8.3",
     "socket.io-client": "^4.8.3",
     "tailwind-merge": "^3.6.0",
