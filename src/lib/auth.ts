@@ -37,6 +37,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   // sign-in for anyone visiting via the LAN IP or a real domain. trustHost
   // makes it use the incoming request's actual Host header instead.
   trustHost: true,
+  cookies: {
+    pkceCodeVerifier: {
+      name: "authjs.pkce.code_verifier",
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: true,
+        maxAge: 60 * 15,
+      },
+    },
+    state: {
+      name: "authjs.state",
+      options: {
+        httpOnly: true,
+        sameSite: "lax" as const,
+        path: "/",
+        secure: true,
+        maxAge: 60 * 15,
+      },
+    },
+  },
   pages: {
     signIn: "/login",
   },
