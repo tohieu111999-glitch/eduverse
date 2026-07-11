@@ -30,35 +30,7 @@ class InvalidTwoFactorError extends CredentialsSignin {
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: "jwt" },
-  secret: process.env.AUTH_SECRET ?? process.env.NEXTAUTH_SECRET,
-  // Without this, Auth.js redirects every sign-in back to whatever fixed
-  // AUTH_URL/NEXTAUTH_URL is configured (here, "http://localhost:3000"),
-  // regardless of which host the request actually came in on — breaking
-  // sign-in for anyone visiting via the LAN IP or a real domain. trustHost
-  // makes it use the incoming request's actual Host header instead.
   trustHost: true,
-  cookies: {
-    pkceCodeVerifier: {
-      name: "authjs.pkce.code_verifier",
-      options: {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        path: "/",
-        secure: true,
-        maxAge: 60 * 15,
-      },
-    },
-    state: {
-      name: "authjs.state",
-      options: {
-        httpOnly: true,
-        sameSite: "lax" as const,
-        path: "/",
-        secure: true,
-        maxAge: 60 * 15,
-      },
-    },
-  },
   pages: {
     signIn: "/login",
   },
