@@ -34,6 +34,7 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
     profile(profile) {
       return { id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
     },
+    issuer: "https://accounts.google.com",
     checks: ["state"],
     style: { brandColor: "#1a73e8" },
   };
