@@ -22,7 +22,15 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
       params: { scope: "openid email profile", response_type: "code", access_type: "offline" },
     },
     token: "https://oauth2.googleapis.com/token",
-    userinfo: "https://www.googleapis.com/oauth2/v3/userinfo",
+    userinfo: {
+      url: "https://www.googleapis.com/oauth2/v3/userinfo",
+      async request({ tokens }: { tokens: { access_token?: string } }) {
+        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${tokens.access_token}` },
+        });
+        return res.json();
+      },
+    },
     profile(profile) {
       return { id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
     },
