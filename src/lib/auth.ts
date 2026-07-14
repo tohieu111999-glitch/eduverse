@@ -19,7 +19,7 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
     clientSecret,
     authorization: {
       url: "https://accounts.google.com/o/oauth2/v2/auth",
-      params: { scope: "openid email profile", response_type: "code", access_type: "offline" },
+      params: { scope: "email profile", response_type: "code", access_type: "offline" },
     },
     token: "https://oauth2.googleapis.com/token",
     userinfo: {
@@ -34,8 +34,6 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
     profile(profile) {
       return { id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
     },
-    issuer: "https://accounts.google.com",
-    checks: ["state"],
     style: { brandColor: "#1a73e8" },
   };
 }
