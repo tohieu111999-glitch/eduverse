@@ -9,7 +9,7 @@ import { prisma } from "./prisma";
 import { verifyTotp } from "./totp";
 
 function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
-  sub: string; name: string; email: string; picture: string;
+  id: string; name: string; email: string; picture: string;
 }> {
   return {
     id: "google",
@@ -19,20 +19,20 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
     clientSecret,
     authorization: {
       url: "https://accounts.google.com/o/oauth2/v2/auth",
-      params: { scope: "email profile", response_type: "code", access_type: "offline" },
+      params: { scope: "email profile", response_type: "code" },
     },
     token: "https://oauth2.googleapis.com/token",
     userinfo: {
-      url: "https://www.googleapis.com/oauth2/v3/userinfo",
+      url: "https://www.googleapis.com/userinfo/v2/me",
       async request({ tokens }: { tokens: { access_token?: string } }) {
-        const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+        const res = await fetch("https://www.googleapis.com/userinfo/v2/me", {
           headers: { Authorization: `Bearer ${tokens.access_token}` },
         });
         return res.json();
       },
     },
     profile(profile) {
-      return { id: profile.sub, name: profile.name, email: profile.email, image: profile.picture };
+      return { id: profile.id, name: profile.name, email: profile.email, image: profile.picture };
     },
     style: { brandColor: "#1a73e8" },
   };
@@ -126,10 +126,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       : []),
   ],
   callbacks: {
-    async signIn({ user }) {
-      // authorize() already blocks banned credentials users with a friendly
-      // error; this catches OAuth sign-ins, which never go through authorize().
-      if (!user.id) return true;
+    async signIn({ user, account }) {
+      if (!user.id || account?.provider !== "credentials") return true;
       const dbUser = await prisma.user.findUnique({ where: { id: user.id }, select: { isBanned: true } });
       return !dbUser?.isBanned;
     },
