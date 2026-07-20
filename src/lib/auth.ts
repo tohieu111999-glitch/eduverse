@@ -34,6 +34,7 @@ function GoogleOAuth(clientId: string, clientSecret: string): OAuthConfig<{
     profile(profile) {
       return { id: profile.id, name: profile.name, email: profile.email, image: profile.picture };
     },
+    issuer: "https://accounts.google.com",
     checks: [],
     allowDangerousEmailAccountLinking: true,
     style: { brandColor: "#1a73e8" },
